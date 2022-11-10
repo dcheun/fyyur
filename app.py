@@ -4,6 +4,7 @@
 
 import json
 import logging
+import sys
 from logging import Formatter, FileHandler
 
 import babel
@@ -43,7 +44,7 @@ class Venue(db.Model):
     phone = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
-    website = db.Column(db.String(500))
+    website_link = db.Column(db.String(500))
     seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String)
     genres = db.Column(db.String(120))
@@ -66,7 +67,9 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    website_link = db.Column(db.String(500))
     seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
+    seeking_description = db.Column(db.String)
     shows = db.relationship('Show', backref='artist', lazy=True)
     
     def __repr__(self):
@@ -258,14 +261,32 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
+    try:
+        venue = Venue(
+            name=request.form['name'],
+            address=request.form['address'],
+            city=request.form['city'],
+            state=request.form['state'],
+            phone=request.form['phone'],
+            # request.form['genres'] only return a single value from the multiselect.
+            genres=','.join(request.form.getlist('genres')),
+            image_link=request.form['image_link'],
+            facebook_link=request.form['facebook_link'],
+            website_link=request.form['website_link'],
+            # seeking_talent is not present if request.form if not selected from UI.
+            seeking_talent=True if request.form.get('seeking_talent', False) == 'y' else False,
+            seeking_description=request.form['seeking_description'],
+        )
+        db.session.add(venue)
+        db.session.commit()
+        flash(f'Venue {venue.name} was successfully listed!', 'success')
+    except Exception:
+        db.session.rollback()
+        flash(f'An error occurred. Venue {request.form.get("name", "UNKNOWN")} could not be listed.', 'danger')
+        print(sys.exc_info())
+    finally:
+        db.session.close()
 
-    # on successful db insert, flash success
-    flash('Venue ' + request.form['name'] + ' was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     return render_template('pages/home.html')
 
 
@@ -462,14 +483,31 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-    # called upon submitting the new artist listing form
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
+    try:
+        artist = Artist(
+            name=request.form['name'],
+            city=request.form['city'],
+            state=request.form['state'],
+            phone=request.form['phone'],
+            # request.form['genres'] only return a single value from the multiselect.
+            genres=','.join(request.form.getlist('genres')),
+            image_link=request.form['image_link'],
+            facebook_link=request.form['facebook_link'],
+            website_link=request.form['website_link'],
+            # seeking_venue is not present if request.form if not selected from UI.
+            seeking_venue=True if request.form.get('seeking_venue', False) == 'y' else False,
+            seeking_description=request.form['seeking_description'],
+        )
+        db.session.add(artist)
+        db.session.commit()
+        flash(f'Artist {artist.name} was successfully listed!', 'success')
+    except Exception:
+        db.session.rollback()
+        flash(f'An error occurred. Artist {request.form.get("name", "UNKNOWN")} could not be listed.', 'danger')
+        print(sys.exc_info())
+    finally:
+        db.session.close()
 
-    # on successful db insert, flash success
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
     return render_template('pages/home.html')
 
 
@@ -528,14 +566,22 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-    # called to create new shows in the db, upon submitting new show listing form
-    # TODO: insert form data as a new Show record in the db, instead
+    try:
+        show = Show(
+            start_time=request.form['start_time'],
+            venue_id=request.form['venue_id'],
+            artist_id=request.form['artist_id']
+        )
+        db.session.add(show)
+        db.session.commit()
+        flash('Show was successfully listed!', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred. Show could not be listed.', 'danger')
+        print(sys.exc_info())
+    finally:
+        db.session.close()
 
-    # on successful db insert, flash success
-    flash('Show was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Show could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     return render_template('pages/home.html')
 
 
