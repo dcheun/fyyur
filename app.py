@@ -11,6 +11,7 @@ import dateutil.parser
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_wtf import Form
 from forms import *
 
@@ -22,6 +23,7 @@ app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 
 # TODO: connect to a local postgresql database
@@ -41,6 +43,14 @@ class Venue(db.Model):
     phone = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    website = db.Column(db.String(500))
+    seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
+    seeking_description = db.Column(db.String)
+    genres = db.Column(db.String(120))
+    shows = db.relationship('Show', backref='venue', lazy=True)
+    
+    def __repr__(self):
+        return f'Venue(id={self.id},name={self.name})'
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -56,8 +66,25 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
+    shows = db.relationship('Show', backref='artist', lazy=True)
+    
+    def __repr__(self):
+        return f'Artist(id={self.id},name={self.name})'
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
+
+
+class Show(db.Model):
+    __tablename__ = 'Show'
+
+    id = db.Column(db.Integer, primary_key=True)
+    start_time = db.Column(db.String(50))
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+
+    def __repr__(self):
+        return f'Show(id={self.id},venue_id={self.venue_id},artist_id={artist_id},start_time={self.start_time})'
 
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
