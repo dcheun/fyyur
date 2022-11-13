@@ -27,8 +27,6 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
-# TODO: connect to a local postgresql database
-
 # ----------------------------------------------------------------------------#
 # Models.
 # ----------------------------------------------------------------------------#
@@ -53,8 +51,6 @@ class Venue(db.Model):
     def __repr__(self):
         return f'Venue(id={self.id},name={self.name})'
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
@@ -75,8 +71,6 @@ class Artist(db.Model):
     def __repr__(self):
         return f'Artist(id={self.id},name={self.name})'
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
 
 class Show(db.Model):
     __tablename__ = 'Show'
@@ -89,8 +83,6 @@ class Show(db.Model):
     def __repr__(self):
         return f'Show(id={self.id},venue_id={self.venue_id},artist_id={self.artist_id},start_time={self.start_time})'
 
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
 # ----------------------------------------------------------------------------#
 # Filters.
@@ -195,8 +187,7 @@ def venues():
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
-    # TODO: implement search on venues with partial string search. Ensure it is case-insensitive.
-    # seach for Hop should return "The Musical Hop".
+    # search for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
     # response = {
     #     "count": 1,
@@ -206,7 +197,6 @@ def search_venues():
     #         "num_upcoming_shows": 0,
     #     }]
     # }
-
     response = {
         'count': 0,
         'data': []
@@ -381,7 +371,7 @@ def create_venue_submission():
             image_link=request.form['image_link'],
             facebook_link=request.form['facebook_link'],
             website_link=request.form['website_link'],
-            # seeking_talent is not present if request.form if not selected from UI.
+            # seeking_talent is not present if request.form is not selected from UI.
             seeking_talent=True if request.form.get('seeking_talent', False) == 'y' else False,
             seeking_description=request.form['seeking_description'],
         )
@@ -429,8 +419,7 @@ def artists():
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
-    # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-    # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
+    # search for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
     # search for "band" should return "The Wild Sax Band".
     # response = {
     #     "count": 1,
@@ -570,6 +559,8 @@ def show_artist(artist_id):
         'phone': artist.phone,
         'seeking_venue': artist.seeking_venue,
         'image_link': artist.image_link,
+        'facebook_link': artist.facebook_link,
+        'website': artist.website_link,
         'past_shows': past_shows,
         'upcoming_shows': upcoming_shows,
         'past_shows_count': len(past_shows),
@@ -587,57 +578,76 @@ def show_artist(artist_id):
 #  ----------------------------------------------------------------
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
-    form = ArtistForm()
-    artist = {
-        "id": 4,
-        "name": "Guns N Petals",
-        "genres": ["Rock n Roll"],
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "326-123-5000",
-        "website": "https://www.gunsnpetalsband.com",
-        "facebook_link": "https://www.facebook.com/GunsNPetals",
-        "seeking_venue": True,
-        "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-        "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
-    }
-    # TODO: populate form with fields from artist with ID <artist_id>
+    artist = Artist.query.get(artist_id)
+    form = ArtistForm(obj=artist)
+    # Multi-select field need to be manually set, doesn't seem to get set otherwise.
+    form.genres.data = artist.genres.split(',')
     return render_template('forms/edit_artist.html', form=form, artist=artist)
 
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
-    # TODO: take values from the form submitted, and update existing
-    # artist record with ID <artist_id> using the new attributes
+    try:
+        artist = Artist.query.get(artist_id)
+        artist.name = request.form['name']
+        artist.city = request.form['city']
+        artist.state = request.form['state']
+        artist.phone = request.form['phone']
+        # genres is a multi-select field, need to call getlist to get all the selected values.
+        artist.genres = ','.join(request.form.getlist('genres'))
+        artist.image_link = request.form['image_link']
+        artist.facebook_link = request.form['facebook_link']
+        artist.website_link = request.form['website_link']
+        # seeking_venue is not present if request.form if not selected from UI.
+        artist.seeking_venue = True if request.form.get('seeking_venue', False) == 'y' else False
+        artist.seeking_description = request.form['seeking_description']
+        db.session.commit()
+        flash(f'Artist {artist.name} was successfully updated!', 'success')
+    except Exception:
+        db.session.rollback()
+        flash(f'An error occurred. Artist {request.form.get("name", "UNKNOWN")} could not be updated.', 'danger')
+        print(sys.exc_info())
+    finally:
+        db.session.close()
 
     return redirect(url_for('show_artist', artist_id=artist_id))
 
 
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
 def edit_venue(venue_id):
-    form = VenueForm()
-    venue = {
-        "id": 1,
-        "name": "The Musical Hop",
-        "genres": ["Jazz", "Reggae", "Swing", "Classical", "Folk"],
-        "address": "1015 Folsom Street",
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "123-123-1234",
-        "website": "https://www.themusicalhop.com",
-        "facebook_link": "https://www.facebook.com/TheMusicalHop",
-        "seeking_talent": True,
-        "seeking_description": "We are on the lookout for a local artist to play every two weeks. Please call us.",
-        "image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60"
-    }
-    # TODO: populate form with values from venue with ID <venue_id>
+    venue = Venue.query.get(venue_id)
+    form = VenueForm(obj=venue)
+    # Multi-select field need to be manually set, doesn't seem to get set otherwise.
+    form.genres.data = venue.genres.split(',')
     return render_template('forms/edit_venue.html', form=form, venue=venue)
 
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
-    # TODO: take values from the form submitted, and update existing
-    # venue record with ID <venue_id> using the new attributes
+    try:
+        venue = Venue.query.get(venue_id)
+        venue.name = request.form['name']
+        venue.address = request.form['address']
+        venue.city = request.form['city']
+        venue.state = request.form['state']
+        venue.phone = request.form['phone']
+        # genres is a multi-select, need to call getlist to get all selected values.
+        venue.genres = ','.join(request.form.getlist('genres'))
+        venue.image_link = request.form['image_link']
+        venue.facebook_link = request.form['facebook_link']
+        venue.website_link = request.form['website_link']
+        # seeking_talent is not present if request.form is not selected from UI.
+        venue.seeking_talent = True if request.form.get('seeking_talent', False) == 'y' else False
+        venue.seeking_description = request.form['seeking_description']
+        db.session.commit()
+        flash(f'Venue {venue.name} was successfully updated!', 'success')
+    except Exception:
+        db.session.rollback()
+        flash(f'An error occurred. Venue {request.form.get("name", "UNKNOWN")} could not be updated.', 'danger')
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+
     return redirect(url_for('show_venue', venue_id=venue_id))
 
 
