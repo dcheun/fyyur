@@ -104,7 +104,7 @@ def venues():
     data = [{'state': k, 'city': k2, 'venues': v2} for k, v in _data.items() for k2, v2 in v.items()]
     data = sorted(data, key=lambda x: (x['state'], x['city']))
 
-    return render_template('pages/venues.html', areas=data);
+    return render_template('pages/venues.html', areas=data)
 
 
 @app.route('/venues/search', methods=['POST'])
@@ -136,7 +136,12 @@ def search_venues():
 def show_venue(venue_id):
     # shows the venue page with the given venue_id
     venue = Venue.query.get(venue_id)
-    past_shows, upcoming_shows = get_past_upcoming_shows(venue.shows)
+    # past_shows, upcoming_shows = get_past_upcoming_shows(venue.shows)
+    curr_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    past_shows = (Show.query.join(Venue)
+                  .filter(Venue.id == venue.id)
+                  .filter(Show.start_time < curr_time)
+                  .order_by('start_time').all())
     past_shows = [
         {
             'artist_id': show.artist.id,
@@ -146,6 +151,10 @@ def show_venue(venue_id):
         }
         for show in past_shows
     ]
+    upcoming_shows = (Show.query.join(Venue)
+                      .filter(Venue.id == venue.id)
+                      .filter(Show.start_time >= curr_time)
+                      .order_by('start_time').all())
     upcoming_shows = [
         {
             'artist_id': show.artist.id,
@@ -289,7 +298,12 @@ def search_artists():
 def show_artist(artist_id):
     # shows the artist page with the given artist_id
     artist = Artist.query.get(artist_id)
-    past_shows, upcoming_shows = get_past_upcoming_shows(artist.shows)
+    # past_shows, upcoming_shows = get_past_upcoming_shows(artist.shows)
+    curr_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    past_shows = (Show.query.join(Artist)
+                  .filter(Artist.id == artist.id)
+                  .filter(Show.start_time < curr_time)
+                  .order_by('start_time').all())
     past_shows = [
         {
             'venue_id': show.venue.id,
@@ -299,6 +313,10 @@ def show_artist(artist_id):
         }
         for show in past_shows
     ]
+    upcoming_shows = (Show.query.join(Artist)
+                      .filter(Artist.id == artist.id)
+                      .filter(Show.start_time >= curr_time)
+                      .order_by('start_time').all())
     upcoming_shows = [
         {
             'venue_id': show.venue.id,
