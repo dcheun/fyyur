@@ -2,17 +2,17 @@
 # Imports
 # ----------------------------------------------------------------------------#
 
+from datetime import datetime
 import logging
 import sys
 from logging import Formatter, FileHandler
 
 import babel
 import dateutil.parser
-from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from flask_moment import Moment
 from flask_migrate import Migrate
-from flask_wtf import Form
-from forms import *
+from forms import VenueForm, ArtistForm, ShowForm
 
 from models import Venue, Artist, Show
 from shared import db
@@ -197,11 +197,18 @@ def show_venue(venue_id):
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
     form = VenueForm()
+    form.validate_on_submit()
     return render_template('forms/new_venue.html', form=form)
 
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
+    # Check if there were errors in the form and redirect to the create page
+    # to show the error alerts.
+    form = VenueForm()
+    if not form.validate_on_submit():
+        return create_venue_form()
+
     try:
         venue = Venue(
             name=request.form['name'],
@@ -358,6 +365,7 @@ def show_artist(artist_id):
 def edit_artist(artist_id):
     artist = Artist.query.get(artist_id)
     form = ArtistForm(obj=artist)
+    form.validate_on_submit()
     # Multi-select field need to be manually set, doesn't seem to get set otherwise.
     form.genres.data = artist.genres.split(',')
     return render_template('forms/edit_artist.html', form=form, artist=artist)
@@ -365,6 +373,12 @@ def edit_artist(artist_id):
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
+    # Check if there were errors in the form and redirect to the edit page
+    # to show the error alerts.
+    form = ArtistForm()
+    if not form.validate_on_submit():
+        return edit_artist(artist_id)
+
     try:
         artist = Artist.query.get(artist_id)
         artist.name = request.form['name']
@@ -395,6 +409,7 @@ def edit_artist_submission(artist_id):
 def edit_venue(venue_id):
     venue = Venue.query.get(venue_id)
     form = VenueForm(obj=venue)
+    form.validate_on_submit()
     # Multi-select field need to be manually set, doesn't seem to get set otherwise.
     form.genres.data = venue.genres.split(',')
     return render_template('forms/edit_venue.html', form=form, venue=venue)
@@ -402,6 +417,12 @@ def edit_venue(venue_id):
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
+    # Check if there were errors in the form and redirect to the edit page
+    # to show the error alerts.
+    form = VenueForm()
+    if not form.validate_on_submit():
+        return edit_venue(venue_id)
+
     try:
         venue = Venue.query.get(venue_id)
         venue.name = request.form['name']
@@ -435,11 +456,18 @@ def edit_venue_submission(venue_id):
 @app.route('/artists/create', methods=['GET'])
 def create_artist_form():
     form = ArtistForm()
+    form.validate_on_submit()
     return render_template('forms/new_artist.html', form=form)
 
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
+    # Check if there were errors in the form and redirect to the create page
+    # to show the error alerts.
+    form = ArtistForm()
+    if not form.validate_on_submit():
+        return create_artist_form()
+
     try:
         artist = Artist(
             name=request.form['name'],

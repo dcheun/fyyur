@@ -1,22 +1,27 @@
 from datetime import datetime
-from flask_wtf import Form
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
-from wtforms.validators import DataRequired, AnyOf, URL
 
-class ShowForm(Form):
+from flask_wtf import FlaskForm
+from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
+from wtforms.validators import DataRequired, URL, Regexp
+
+
+class ShowForm(FlaskForm):
     artist_id = StringField(
-        'artist_id'
+        'artist_id',
+        validators=[DataRequired()]
     )
     venue_id = StringField(
-        'venue_id'
+        'venue_id',
+        validators=[DataRequired()]
     )
     start_time = DateTimeField(
         'start_time',
         validators=[DataRequired()],
-        default= datetime.today()
+        default=datetime.today()
     )
 
-class VenueForm(Form):
+
+class VenueForm(FlaskForm):
     name = StringField(
         'name', validators=[DataRequired()]
     )
@@ -83,7 +88,11 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone'
+        'phone',
+        validators=[
+            DataRequired(),
+            Regexp(r'^\d{3}-\d{3}-\d{4}$',
+                   message="Invalid phone number, must be in the form: XXX-XXX-XXXX")]
     )
     image_link = StringField(
         'image_link'
@@ -114,21 +123,24 @@ class VenueForm(Form):
         ]
     )
     facebook_link = StringField(
-        'facebook_link', validators=[URL()]
+        'facebook_link',
+        validators=[
+            DataRequired(),
+            URL(message='Invalid Facebook link')
+        ]
     )
     website_link = StringField(
         'website_link'
     )
 
-    seeking_talent = BooleanField( 'seeking_talent' )
+    seeking_talent = BooleanField('seeking_talent')
 
     seeking_description = StringField(
         'seeking_description'
     )
 
 
-
-class ArtistForm(Form):
+class ArtistForm(FlaskForm):
     name = StringField(
         'name', validators=[DataRequired()]
     )
@@ -192,8 +204,11 @@ class ArtistForm(Form):
         ]
     )
     phone = StringField(
-        # TODO implement validation logic for phone 
-        'phone'
+        'phone',
+        validators=[
+            DataRequired(),
+            Regexp(r'^\d{3}-\d{3}-\d{4}$',
+                   message='Invalid phone number, must be in the form: XXX-XXX-XXXX')]
     )
     image_link = StringField(
         'image_link'
@@ -221,19 +236,23 @@ class ArtistForm(Form):
             ('Soul', 'Soul'),
             ('Other', 'Other'),
         ]
-     )
+    )
     facebook_link = StringField(
         # TODO implement enum restriction
-        'facebook_link', validators=[URL()]
-     )
+        'facebook_link',
+        validators=[
+            DataRequired(),
+            URL(message='Invalid Facebook link')
+        ]
+    )
 
     website_link = StringField(
         'website_link'
-     )
+    )
 
-    seeking_venue = BooleanField( 'seeking_venue' )
+    seeking_venue = BooleanField('seeking_venue')
 
     seeking_description = StringField(
-            'seeking_description'
-     )
+        'seeking_description'
+    )
 
